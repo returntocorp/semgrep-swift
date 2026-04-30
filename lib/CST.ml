@@ -909,8 +909,12 @@ and import_declaration = (
 )
 
 and inheritance_specifier = [
-    `User_type of user_type
-  | `Func_type of function_type
+    `Choice_user_type of [
+        `User_type of user_type
+      | `Func_type of function_type
+    ]
+  | `Semg_ellips of Token.t (* "..." *)
+  | `Semg_ellips_meta of semgrep_ellipsis_metavar (*tok*)
 ]
 
 and inheritance_specifiers = (
@@ -1271,27 +1275,32 @@ and protocol_declaration = (
 )
 
 and protocol_member_declaration = [
-    `Body_func_decl_opt_func_body of (
-        bodyless_function_declaration
-      * function_body option
-    )
-  | `Deinit_decl of deinit_declaration
-  | `Prot_prop_decl of (
-        modifiers option
-      * binding_kind_and_pattern
-      * type_annotation option
-      * type_constraints option
-      * protocol_property_requirements
-    )
-  | `Typeas_decl of typealias_declaration
-  | `Asso_decl of associatedtype_declaration
-  | `Subs_decl of subscript_declaration
+    `Choice_body_func_decl_opt_func_body of [
+        `Body_func_decl_opt_func_body of (
+            bodyless_function_declaration
+          * function_body option
+        )
+      | `Deinit_decl of deinit_declaration
+      | `Prot_prop_decl of protocol_property_declaration
+      | `Typeas_decl of typealias_declaration
+      | `Asso_decl of associatedtype_declaration
+      | `Subs_decl of subscript_declaration
+    ]
+  | `Semg_ellips of Token.t (* "..." *)
 ]
 
 and protocol_member_declarations = (
     protocol_member_declaration
   * (semi * protocol_member_declaration) list (* zero or more *)
   * semi option
+)
+
+and protocol_property_declaration = (
+    modifiers option
+  * binding_kind_and_pattern
+  * type_annotation option
+  * type_constraints option
+  * protocol_property_requirements
 )
 
 and raw_str_interpolation = (
@@ -2038,14 +2047,6 @@ type prefix_expression (* inlined *) = (
 type protocol_composition_type (* inlined *) = (
     unannotated_type
   * (Token.t (* "&" *) * unannotated_type) list (* one or more *)
-)
-
-type protocol_property_declaration (* inlined *) = (
-    modifiers option
-  * binding_kind_and_pattern
-  * type_annotation option
-  * type_constraints option
-  * protocol_property_requirements
 )
 
 type range_expression (* inlined *) = (

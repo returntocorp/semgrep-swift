@@ -1648,8 +1648,12 @@ let children_regexps : (string * Run.exp option) list = [
   "inheritance_specifier",
   Some (
     Alt [|
-      Token (Name "user_type");
-      Token (Name "function_type");
+      Alt [|
+        Token (Name "user_type");
+        Token (Name "function_type");
+      |];
+      Token (Name "semgrep_ellipsis");
+      Token (Name "semgrep_ellipsis_metavar");
     |];
   );
   "inheritance_specifiers",
@@ -2353,17 +2357,20 @@ let children_regexps : (string * Run.exp option) list = [
   "protocol_member_declaration",
   Some (
     Alt [|
-      Seq [
-        Token (Name "bodyless_function_declaration");
-        Opt (
-          Token (Name "function_body");
-        );
-      ];
-      Token (Name "deinit_declaration");
-      Token (Name "protocol_property_declaration");
-      Token (Name "typealias_declaration");
-      Token (Name "associatedtype_declaration");
-      Token (Name "subscript_declaration");
+      Alt [|
+        Seq [
+          Token (Name "bodyless_function_declaration");
+          Opt (
+            Token (Name "function_body");
+          );
+        ];
+        Token (Name "deinit_declaration");
+        Token (Name "protocol_property_declaration");
+        Token (Name "typealias_declaration");
+        Token (Name "associatedtype_declaration");
+        Token (Name "subscript_declaration");
+      |];
+      Token (Name "semgrep_ellipsis");
     |];
   );
   "protocol_member_declarations",
@@ -6689,12 +6696,26 @@ and trans_inheritance_specifier ((kind, body) : mt) : CST.inheritance_specifier 
   | Children v ->
       (match v with
       | Alt (0, v) ->
-          `User_type (
-            trans_user_type (Run.matcher_token v)
+          `Choice_user_type (
+            (match v with
+            | Alt (0, v) ->
+                `User_type (
+                  trans_user_type (Run.matcher_token v)
+                )
+            | Alt (1, v) ->
+                `Func_type (
+                  trans_function_type (Run.matcher_token v)
+                )
+            | _ -> assert false
+            )
           )
       | Alt (1, v) ->
-          `Func_type (
-            trans_function_type (Run.matcher_token v)
+          `Semg_ellips (
+            trans_semgrep_ellipsis (Run.matcher_token v)
+          )
+      | Alt (2, v) ->
+          `Semg_ellips_meta (
+            trans_semgrep_ellipsis_metavar (Run.matcher_token v)
           )
       | _ -> assert false
       )
@@ -8188,37 +8209,47 @@ and trans_protocol_member_declaration ((kind, body) : mt) : CST.protocol_member_
   | Children v ->
       (match v with
       | Alt (0, v) ->
-          `Body_func_decl_opt_func_body (
+          `Choice_body_func_decl_opt_func_body (
             (match v with
-            | Seq [v0; v1] ->
-                (
-                  trans_bodyless_function_declaration (Run.matcher_token v0),
-                  Run.opt
-                    (fun v -> trans_function_body (Run.matcher_token v))
-                    v1
+            | Alt (0, v) ->
+                `Body_func_decl_opt_func_body (
+                  (match v with
+                  | Seq [v0; v1] ->
+                      (
+                        trans_bodyless_function_declaration (Run.matcher_token v0),
+                        Run.opt
+                          (fun v -> trans_function_body (Run.matcher_token v))
+                          v1
+                      )
+                  | _ -> assert false
+                  )
+                )
+            | Alt (1, v) ->
+                `Deinit_decl (
+                  trans_deinit_declaration (Run.matcher_token v)
+                )
+            | Alt (2, v) ->
+                `Prot_prop_decl (
+                  trans_protocol_property_declaration (Run.matcher_token v)
+                )
+            | Alt (3, v) ->
+                `Typeas_decl (
+                  trans_typealias_declaration (Run.matcher_token v)
+                )
+            | Alt (4, v) ->
+                `Asso_decl (
+                  trans_associatedtype_declaration (Run.matcher_token v)
+                )
+            | Alt (5, v) ->
+                `Subs_decl (
+                  trans_subscript_declaration (Run.matcher_token v)
                 )
             | _ -> assert false
             )
           )
       | Alt (1, v) ->
-          `Deinit_decl (
-            trans_deinit_declaration (Run.matcher_token v)
-          )
-      | Alt (2, v) ->
-          `Prot_prop_decl (
-            trans_protocol_property_declaration (Run.matcher_token v)
-          )
-      | Alt (3, v) ->
-          `Typeas_decl (
-            trans_typealias_declaration (Run.matcher_token v)
-          )
-      | Alt (4, v) ->
-          `Asso_decl (
-            trans_associatedtype_declaration (Run.matcher_token v)
-          )
-      | Alt (5, v) ->
-          `Subs_decl (
-            trans_subscript_declaration (Run.matcher_token v)
+          `Semg_ellips (
+            trans_semgrep_ellipsis (Run.matcher_token v)
           )
       | _ -> assert false
       )
