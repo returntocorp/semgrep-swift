@@ -2040,11 +2040,21 @@ and map_import_declaration (env : env) ((v1, v2, v3, v4) : CST.import_declaratio
 
 and map_inheritance_specifier (env : env) (x : CST.inheritance_specifier) =
   (match x with
-  | `User_type x -> R.Case ("User_type",
-      map_user_type env x
+  | `Choice_user_type x -> R.Case ("Choice_user_type",
+      (match x with
+      | `User_type x -> R.Case ("User_type",
+          map_user_type env x
+        )
+      | `Func_type x -> R.Case ("Func_type",
+          map_function_type env x
+        )
+      )
     )
-  | `Func_type x -> R.Case ("Func_type",
-      map_function_type env x
+  | `Semg_ellips tok -> R.Case ("Semg_ellips",
+      (* "..." *) token env tok
+    )
+  | `Semg_ellips_meta tok -> R.Case ("Semg_ellips_meta",
+      (* pattern \$\.\.\.[a-zA-Z_][a-zA-Z_0-9]* *) token env tok
     )
   )
 
@@ -2969,54 +2979,38 @@ and map_protocol_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.pro
 
 and map_protocol_member_declaration (env : env) (x : CST.protocol_member_declaration) =
   (match x with
-  | `Body_func_decl_opt_func_body (v1, v2) -> R.Case ("Body_func_decl_opt_func_body",
-      let v1 = map_bodyless_function_declaration env v1 in
-      let v2 =
-        (match v2 with
-        | Some x -> R.Option (Some (
-            map_function_body env x
-          ))
-        | None -> R.Option None)
-      in
-      R.Tuple [v1; v2]
+  | `Choice_body_func_decl_opt_func_body x -> R.Case ("Choice_body_func_decl_opt_func_body",
+      (match x with
+      | `Body_func_decl_opt_func_body (v1, v2) -> R.Case ("Body_func_decl_opt_func_body",
+          let v1 = map_bodyless_function_declaration env v1 in
+          let v2 =
+            (match v2 with
+            | Some x -> R.Option (Some (
+                map_function_body env x
+              ))
+            | None -> R.Option None)
+          in
+          R.Tuple [v1; v2]
+        )
+      | `Deinit_decl x -> R.Case ("Deinit_decl",
+          map_deinit_declaration env x
+        )
+      | `Prot_prop_decl x -> R.Case ("Prot_prop_decl",
+          map_protocol_property_declaration env x
+        )
+      | `Typeas_decl x -> R.Case ("Typeas_decl",
+          map_typealias_declaration env x
+        )
+      | `Asso_decl x -> R.Case ("Asso_decl",
+          map_associatedtype_declaration env x
+        )
+      | `Subs_decl x -> R.Case ("Subs_decl",
+          map_subscript_declaration env x
+        )
+      )
     )
-  | `Deinit_decl x -> R.Case ("Deinit_decl",
-      map_deinit_declaration env x
-    )
-  | `Prot_prop_decl (v1, v2, v3, v4, v5) -> R.Case ("Prot_prop_decl",
-      let v1 =
-        (match v1 with
-        | Some x -> R.Option (Some (
-            map_modifiers env x
-          ))
-        | None -> R.Option None)
-      in
-      let v2 = map_binding_kind_and_pattern env v2 in
-      let v3 =
-        (match v3 with
-        | Some x -> R.Option (Some (
-            map_type_annotation env x
-          ))
-        | None -> R.Option None)
-      in
-      let v4 =
-        (match v4 with
-        | Some x -> R.Option (Some (
-            map_type_constraints env x
-          ))
-        | None -> R.Option None)
-      in
-      let v5 = map_protocol_property_requirements env v5 in
-      R.Tuple [v1; v2; v3; v4; v5]
-    )
-  | `Typeas_decl x -> R.Case ("Typeas_decl",
-      map_typealias_declaration env x
-    )
-  | `Asso_decl x -> R.Case ("Asso_decl",
-      map_associatedtype_declaration env x
-    )
-  | `Subs_decl x -> R.Case ("Subs_decl",
-      map_subscript_declaration env x
+  | `Semg_ellips tok -> R.Case ("Semg_ellips",
+      (* "..." *) token env tok
     )
   )
 
@@ -3037,6 +3031,32 @@ and map_protocol_member_declarations (env : env) ((v1, v2, v3) : CST.protocol_me
     | None -> R.Option None)
   in
   R.Tuple [v1; v2; v3]
+
+and map_protocol_property_declaration (env : env) ((v1, v2, v3, v4, v5) : CST.protocol_property_declaration) =
+  let v1 =
+    (match v1 with
+    | Some x -> R.Option (Some (
+        map_modifiers env x
+      ))
+    | None -> R.Option None)
+  in
+  let v2 = map_binding_kind_and_pattern env v2 in
+  let v3 =
+    (match v3 with
+    | Some x -> R.Option (Some (
+        map_type_annotation env x
+      ))
+    | None -> R.Option None)
+  in
+  let v4 =
+    (match v4 with
+    | Some x -> R.Option (Some (
+        map_type_constraints env x
+      ))
+    | None -> R.Option None)
+  in
+  let v5 = map_protocol_property_requirements env v5 in
+  R.Tuple [v1; v2; v3; v4; v5]
 
 and map_raw_str_interpolation (env : env) ((v1, v2, v3) : CST.raw_str_interpolation) =
   let v1 = (* pattern \\#*\( *) token env v1 in
